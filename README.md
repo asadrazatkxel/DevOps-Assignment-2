@@ -11,7 +11,7 @@ Please look into the Ansible Beginner Course and Terraform Beginners Course from
 
 ---
 
-# DevOps Assignment 2 - Terraform, Ansible, and Docker Setup
+# Terraform, Ansible - playbook, and Docker Setup
 
 ## Overview
 
