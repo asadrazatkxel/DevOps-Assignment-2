@@ -7,19 +7,64 @@ resource "azurerm_virtual_network" "myazurelinuxvm" {
   name                = "myazurelinuxvm-network"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.myazurelinuxvm.location
-  resource_group_name = "kml_rg_main-38562b46e13443fa"
+  resource_group_name = azurerm_resource_group.myazurelinuxvm.name
 }
 
 resource "azurerm_subnet" "myazurelinuxvm" {
   name                 = "internal"
-  resource_group_name  = "kml_rg_main-38562b46e13443fa"
+  resource_group_name  = azurerm_resource_group.myazurelinuxvm.name
   virtual_network_name = azurerm_virtual_network.myazurelinuxvm.name
   address_prefixes     = ["10.0.2.0/24"]
 }
 
+resource "azurerm_network_security_group" "myazurelinuxvm" {
+  name                = "myazurelinuxvm-nsg"
+  location            = azurerm_resource_group.myazurelinuxvm.location
+  resource_group_name = azurerm_resource_group.myazurelinuxvm.name
+
+  # Allow SSH (port 22)
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Allow HTTP (port 80)
+  security_rule {
+    name                       = "Allow-HTTP"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # Allow HTTPS (port 443)
+  security_rule {
+    name                       = "Allow-HTTPS"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
 resource "azurerm_public_ip" "myazurelinuxvm" {
   name                = "acceptanceTestPublicIp1"
-  resource_group_name = "kml_rg_main-38562b46e13443fa"
+  resource_group_name = azurerm_resource_group.myazurelinuxvm.name
   location            = azurerm_resource_group.myazurelinuxvm.location
   allocation_method   = "Static"
 
@@ -31,19 +76,22 @@ resource "azurerm_public_ip" "myazurelinuxvm" {
 resource "azurerm_network_interface" "myazurelinuxvm" {
   name                = "myazurelinuxvm-nic"
   location            = azurerm_resource_group.myazurelinuxvm.location
-  resource_group_name = "kml_rg_main-38562b46e13443fa"
+  resource_group_name = azurerm_resource_group.myazurelinuxvm.name
 
   ip_configuration {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.myazurelinuxvm.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id  = azurerm_public_ip.myazurelinuxvm.id
+    public_ip_address_id          = azurerm_public_ip.myazurelinuxvm.id
   }
+
+  # Associate the network security group with the NIC
+  network_security_group_id = azurerm_network_security_group.myazurelinuxvm.id
 }
 
 resource "azurerm_linux_virtual_machine" "myazurelinuxvm" {
   name                = "myazurelinuxvm-machine"
-  resource_group_name = "kml_rg_main-38562b46e13443fa"
+  resource_group_name = azurerm_resource_group.myazurelinuxvm.name
   location            = azurerm_resource_group.myazurelinuxvm.location
   size                = "Standard_B2s"
   admin_username      = "adminuser"
